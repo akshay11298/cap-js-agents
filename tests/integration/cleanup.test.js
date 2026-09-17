@@ -204,19 +204,18 @@ describe("@cap-js/agents - Task Cleanup", () => {
         expect(msgs.length).toBe(0)
       })
 
-      it("should not replace an existing scheduled job when called again after 24h throttle expires", async () => {
+      it("should not schedule again when outbox already has a cleanupTasks job in the next 24h cleanup window", async () => {
         cds.env.agents.retention = "7d"
 
         await triggerCleanup(SERVICE_NAME)
 
-        // Simulate throttle expiry: either a fresh instance (no in-memory state) or the same instance after 24h have passed — both produce the same code path
+        // Simulate server restart: in-memory throttle is empty but outbox task remains.
         _resetCleanupThrottle()
 
-        // Second call
         await triggerCleanup(SERVICE_NAME)
 
         const msgs = await SELECT.from(OUTBOX_MESSAGES).where(`msg like '%cleanupTasks%'`)
-        expect(msgs.length).toBe(2)
+        expect(msgs.length).toBe(1)
       })
     })
   }
