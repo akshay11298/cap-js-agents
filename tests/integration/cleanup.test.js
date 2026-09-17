@@ -203,6 +203,21 @@ describe("@cap-js/agents - Task Cleanup", () => {
         const msgs = await SELECT.from(OUTBOX_MESSAGES).where(`msg like '%cleanupTasks%'`)
         expect(msgs.length).toBe(0)
       })
+
+      it("should not replace an existing scheduled job when called again after 24h throttle expires", async () => {
+        cds.env.agents.retention = "7d"
+
+        await triggerCleanup(SERVICE_NAME)
+
+        // Simulate throttle expiry: either a fresh instance (no in-memory state) or the same instance after 24h have passed — both produce the same code path
+        _resetCleanupThrottle()
+
+        // Second call
+        await triggerCleanup(SERVICE_NAME)
+
+        const msgs = await SELECT.from(OUTBOX_MESSAGES).where(`msg like '%cleanupTasks%'`)
+        expect(msgs.length).toBe(2)
+      })
     })
   }
 })
