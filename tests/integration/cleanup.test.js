@@ -217,6 +217,32 @@ describe("@cap-js/agents - Task Cleanup", () => {
         const msgs = await SELECT.from(OUTBOX_MESSAGES).where(`msg like '%cleanupTasks%'`)
         expect(msgs.length).toBe(1)
       })
+
+      it("should schedule again after 24+ hours", async () => {
+        cds.env.agents.retention = "7d"
+
+        const realNow = Date.now();
+
+        await triggerCleanup(SERVICE_NAME)
+
+        // Simulate server restart: in-memory throttle is empty but outbox task remains.
+        _resetCleanupThrottle()
+        vi.setSystemTime(realNow + 24 * 60 * 60 * 1000 + 100) // Advance time by 24+ hours
+
+        let error = undefined;
+        try {
+          await triggerCleanup(SERVICE_NAME)
+
+          const msgs = await SELECT.from(OUTBOX_MESSAGES).where(`msg like '%cleanupTasks%'`)
+          expect(msgs.length).toBe(2)
+        } catch(e) {
+          error = e;
+        }
+        finally {
+          vi.useRealTimers();
+        }
+        expect(error).toBeUndefined();
+      })
     })
   }
 })
