@@ -221,7 +221,7 @@ describe("@cap-js/agents - Task Cleanup", () => {
       it("should schedule again after 24+ hours", async () => {
         cds.env.agents.retention = "7d"
 
-        const realNow = Date.now();
+        const realNow = Date.now()
 
         await triggerCleanup(SERVICE_NAME)
 
@@ -229,19 +229,18 @@ describe("@cap-js/agents - Task Cleanup", () => {
         _resetCleanupThrottle()
         vi.setSystemTime(realNow + 24 * 60 * 60 * 1000 + 100) // Advance time by 24+ hours
 
-        let error = undefined;
+        let error = undefined
         try {
           await triggerCleanup(SERVICE_NAME)
 
           const msgs = await SELECT.from(OUTBOX_MESSAGES).where(`msg like '%cleanupTasks%'`)
           expect(msgs.length).toBe(2)
-        } catch(e) {
-          error = e;
+        } catch (e) {
+          error = e
+        } finally {
+          vi.useRealTimers()
         }
-        finally {
-          vi.useRealTimers();
-        }
-        expect(error).toBeUndefined();
+        expect(error).toBeUndefined()
       })
     })
   }
